@@ -1,0 +1,103 @@
+require 'rails_helper'
+
+RSpec.describe ProjectsController, type: :controller do
+  describe '#index' do
+    context "as an authenticated user" do
+      before do
+        @user = FactoryBot.create(:user)
+      end
+
+      it 'respondes successfully' do
+        sign_in @user
+        get :index
+        expect(response).to be_success
+      end
+
+      it 'returns a 200 response' do
+        sign_in @user
+        get :index
+        expect(response).to have_http_status '200'
+      end
+    end
+
+    context 'as a guest' do
+      it 'returns a 302 response' do
+        get :index
+        expect(response).to have_http_status '302'
+      end
+
+      it 'redirects to the sign-in page' do
+        get :index
+        expect(response).to redirect_to '/users/sign_in'
+      end
+    end
+  end
+
+  describe '#show' do
+    context 'as an authenticated user' do
+      before do
+        @user = FactoryBot.create(:user)
+        @project = FactoryBot.create(:project, owner: @user)
+      end
+
+      it 'respondes successfully' do
+        sign_in @user
+        get :show, params: { id: @project.id }
+        expect(response).to be_success
+      end
+    end
+
+    context 'as a guest' do
+      before do
+        @user = FactoryBot.create(:user)
+        other_user = FactoryBot.create(:user)
+        @project = FactoryBot.create(:project, owner: other_user)
+      end
+
+      it 'redirects to the dashboard' do
+        sign_in @user
+        get :show, params: { id: @project.id }
+        expect(response).to redirect_to root_path
+      end
+    end
+  end
+
+  describe '#create' do
+    context '認証済みユーザーとして' do
+      before do
+        @user = FactoryBot.create(:user)
+      end
+
+      it 'プロジェクトを追加できること' do
+        project_params = FactoryBot.attributes_for(:project)
+        sign_in @user
+        expect {
+          post :create, params: { project: project_params }
+        }.to change(@user.projects, :count).by(1)
+      end
+    end
+
+    context 'ゲストとして' do
+      before do
+        @user = FactoryBot.create(:user)
+        @other_user = FactoryBot.create(:user)
+      end
+
+      it '302レスポンスを返すこと' do
+        project_params = FactoryBot.attributes_for(:project)
+        post :create, params: { project: project_params }
+        expect(response).to have_http_status '302'
+      end
+
+      it 'サインイン画面にリダイレクトされること' do
+        project_params = FactoryBot.attributes_for(:project)
+        post :create, params: { project: project_params }
+        expect(response).to redirect_to '/users/sign_in'
+      end
+    end
+  end
+
+  describe '#update' do
+
+  end
+end
